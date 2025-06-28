@@ -1,6 +1,6 @@
 {
   "name": "neovim-keymaps-list",
-  "displayName": "Neovim Keymaps List",
+  "displayName": "VSCode Neovim Keymaps List",
   "description": "List and search all VSCode Neovim keymaps",
   "author": "Hamada Sayed",
   "publisher": "hsayed",
