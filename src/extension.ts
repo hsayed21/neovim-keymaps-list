@@ -17,6 +17,7 @@ class NeovimKeymapsProvider {
 	private keymaps: KeymapItem[] = [];
 	private isNeovimAvailable = false;
 	private initialized: Promise<void>;
+	private fuse: any = null;
 
 	constructor() {
 		this.initialized = this.loadKeymaps();
@@ -77,6 +78,26 @@ class NeovimKeymapsProvider {
 					description: map.desc
 				}));
 
+			try {
+				const { default: Fuse } = await import('fuse.js');
+				this.fuse = new Fuse(this.keymaps, {
+					keys: [
+						{ name: 'lhs', weight: 0.4 },
+						{ name: 'description', weight: 0.3 },
+						{ name: 'rhs', weight: 0.2 },
+						{ name: 'modeName', weight: 0.1 }
+					],
+					threshold: 0.4, // Lower = more strict matching
+					includeScore: true,
+					ignoreLocation: true,
+					findAllMatches: true,
+					minMatchCharLength: 1
+				});
+			} catch (error) {
+				console.error('Failed to load Fuse.js:', error);
+				this.fuse = null;
+			}
+
 		} catch (error) {
 			vscode.window.showErrorMessage(`Failed to load keymaps: ${error}`);
 		} finally {
@@ -91,13 +112,23 @@ class NeovimKeymapsProvider {
 
 	async searchKeymaps(query: string): Promise<KeymapItem[]> {
 		const keymaps = await this.getKeymaps();
-		const q = query.toLowerCase();
-		return keymaps.filter(k =>
-			k.lhs.toLowerCase().includes(q) ||
-			k.rhs.toLowerCase().includes(q) ||
-			k.modeName.toLowerCase().includes(q) ||
-			k.description?.toLowerCase().includes(q)
-		);
+
+		if (!query.trim()) {
+			return keymaps;
+		}
+
+		if (!this.fuse) {
+			const q = query.toLowerCase();
+			return keymaps.filter(k =>
+				k.lhs.toLowerCase().includes(q) ||
+				k.rhs.toLowerCase().includes(q) ||
+				k.modeName.toLowerCase().includes(q) ||
+				k.description?.toLowerCase().includes(q)
+			);
+		}
+
+		const results = this.fuse.search(query);
+		return results.map((result: any) => result.item);
 	}
 
 	isNeovimInstalled(): boolean { return this.isNeovimAvailable; }

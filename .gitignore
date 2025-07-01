@@ -2,3 +2,5 @@ node_modules
 .DS_Store
 dist
 .vscode
+src/extension.js*
+*.vsix
