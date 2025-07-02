@@ -1,0 +1,94 @@
+{{!-- Syntax HBS: https://handlebarsjs.com/guide/ --}}
+
+
+{{!--
+Introduction
+• This template tries to follow conventional commits format https://www.conventionalcommits.org/en/v1.0.0/
+• The template uses regex to filter commit types into their own headings (this is more than just fixes and features headings)
+• It also uses the replaceText function in package.json to remove the commit type text from the message, because the headers are shown instead.
+
+• The text 'Breaking:' or 'Breaking changes:' can be located anywhere in the commit.
+• The types feat:, fix:, chore:, docs:, refactor:, test:, style:, perf: must be at the beginning of the commit subject with an : on end.
+   • They can optionally have a scope set to outline the module or component that is affected eg feat(bldAssess):
+• There is a short hash on the end of every commit that is currently commented out so that change log did not grow too long (due to some system's file size limitations).  You can uncomment if you wish [`{{shorthash}}`]({{href}})
+
+Example Definitions
+• feat: A new feature
+• fix: A bug fix
+• perf: A code change that improves performance
+• refactor: A code change that neither fixes a bug nor adds a feature
+• style: Changes that do not affect the meaning of the code (white-space, formatting, spelling mistakes, missing semi-colons, etc)
+• test: Adding missing tests or correcting existing tests
+• docs: Adding/updating documentation
+• chore: Something like updating a library version, or moving files to be in a better location and updating all file refs
+--}}
+
+
+{{!-- In package.json need to add this to remove label text from the change log output (because the markdown headers are now used to group them).
+   NOTES • Individual brackets have been escaped twice to be Json compliant.
+         • For items that define a scope eg feat(bldAssess): We remove the 1st bracket and then re-add it so we can select the right piece of text
+{
+  "name": "my-awesome-package",
+
+  "auto-changelog": {
+    "replaceText": {
+      "([bB]reaking:)": "",
+      "([bB]reaking change:)": "",
+      "(^[fF]eat:)": "",
+      "(^[fF]eat\\()": "\\(",
+      "(^[fF]ix:)": "",
+      "(^[fF]ix\\()": "\\(",
+      "(^[cC]hore:)": "",
+      "(^[cC]hore\\()": "\\(",
+      "(^[dD]ocs:)": "",
+      "(^[dD]ocs\\()": "\\(",
+      "(^[rR]efactor:)": "",
+      "(^[rR]efactor\\()": "\\(",
+      "(^[tT]est:)": "",
+      "(^[tT]est\\()": "\\(",
+      "(^[sS]tyle:)": "",
+      "(^[sS]tyle\\()": "\\(",
+      "(^[pP]erf:)": "",
+      "(^[pP]erf\\()": "\\("
+    }
+  }
+
+}
+ --}}
+
+ {{!--
+ Regex reminders
+ ^ = starts with
+ \( = ( character (otherwise it is interpreted as a regex lookup group)
+ * = zero or more of the previous character
+ \s = whitespace
+ . = any character except newline
+ | = or
+ [aA] = character a or character A
+ --}}
+
+
+ {{! prettier-ignore }}
+{{#with (lookup releases 0)}}
+
+  {{#commit-parser merges commits}}
+      {{#commit-list this heading="# **What's Changed**" message='^[fF]eat:|[fF]eat\(|^[rR]efactor:|^[rR]efactor\(|^[fF]ix:|^[fF]ix\(|^[pP]erf:|^[pP]erf\(|^[dD]eprecate:|^[dD]eprecate\(|^[cC]hore:|^[cC]hore\((?!release\))|^[sS]tyle:|^[sS]tyle\(' exclude='[bB]reaking [cC]hange:|[bB]reaking:' }}
+        - {{#replaceCommit}}{{subject}}{{/replaceCommit}} by @{{author}} [({{shorthash}})]({{href}})
+      {{/commit-list}}
+  {{/commit-parser}}
+
+  {{#if tag}}
+    **Full Changelog:** [{{diff}}]({{href}})
+  {{/if}}
+
+{{!-- For Debugging --}}
+{{!--
+  <ul>
+  {{#each this}}
+    <li>{{@key}}: {{this}}</li>
+  {{/each}}
+</ul> --}}
+
+{{!-- <pre>{{{json this}}}</pre> --}}
+
+{{/with}}
