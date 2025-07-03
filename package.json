@@ -33,7 +33,11 @@
   },
   "keywords": [
     "neovim",
-    "keymaps"
+    "keymaps",
+    "vscode-neovim"
+  ],
+  "extensionDependencies": [
+    "asvetliakov.vscode-neovim"
   ],
   "scripts": {
     "vscode:prepublish": "npm run package",
@@ -58,7 +62,6 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
-    "@chemzqm/neovim": "^6.3.6",
     "@release-it/conventional-changelog": "^10.0.1",
     "fuse.js": "^7.1.0",
     "release-it": "^19.0.3"
