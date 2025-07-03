@@ -4,7 +4,7 @@ module.exports = function (
 ) {
     Handlebars.registerHelper('replaceCommit', function (context) {
         const commit =
-            /^(build|chore|ci|docs|feat|fix|perf|refactor|revert|deprecate|style|test)\s?(\((.*?)\))?!?: (.*?)$/g;
+            /.*?(chore|feat|fix|perf|refactor|style|docs|test|ci|build|deprecate)(\((.*?)\))?!?: (.*?)$/g;
 
         // @ts-ignore
         const string = context.fn(this);
@@ -34,13 +34,19 @@ module.exports = function (
                 emoji = "⚡️";
                 break;
             case 'refactor':
-                emoji = "🔧";
+                emoji = "♻️";
                 break;
             case 'style':
                 emoji = "🎨";
                 break;
             case 'deprecate':
                 emoji = "⚠️";
+                break;
+            case 'docs':
+                emoji = "📝";
+                break;
+            case 'ci':
+                emoji = "🤖";
                 break;
         }
        

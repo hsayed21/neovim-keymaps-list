@@ -72,7 +72,7 @@ Example Definitions
 {{#with (lookup releases 0)}}
 
   {{#commit-parser merges commits}}
-      {{#commit-list this heading="# **What's Changed**" message='^[fF]eat:|[fF]eat\(|^[rR]efactor:|^[rR]efactor\(|^[fF]ix:|^[fF]ix\(|^[pP]erf:|^[pP]erf\(|^[dD]eprecate:|^[dD]eprecate\(|^[cC]hore:|^[cC]hore\((?!release\))|^[sS]tyle:|^[sS]tyle\(' exclude='[bB]reaking [cC]hange:|[bB]reaking:' }}
+      {{#commit-list this heading="# **What's Changed**" message='.*?(chore|feat|fix|perf|refactor|style|docs|test|ci|build|deprecate)(\(.*?\))?!?:' exclude='[bB]reaking [cC]hange:|[bB]reaking:|chore\(release\)' }}
         - {{#replaceCommit}}{{subject}}{{/replaceCommit}} by @{{author}} [({{shorthash}})]({{href}})
       {{/commit-list}}
   {{/commit-parser}}

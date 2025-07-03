@@ -1,5 +1,5 @@
 /* eslint-disable no-template-curly-in-string */
-const changelog = `npx auto-changelog --commit-limit false --unreleased --template .config\\template.hbs --handlebars-setup .config\\setup.js`;
+const changelog = `npx auto-changelog --commit-limit false --template .config\\template.hbs --handlebars-setup .config\\setup.js`;
 
 module.exports = {
     plugins: {
