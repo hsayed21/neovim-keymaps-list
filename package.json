@@ -4,7 +4,7 @@
   "description": "List and search all VSCode Neovim keymaps",
   "author": "Hamada Sayed",
   "publisher": "hsayed",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "engines": {
     "vscode": "^1.93.0"
   },
