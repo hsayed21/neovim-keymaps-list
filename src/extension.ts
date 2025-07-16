@@ -13,6 +13,7 @@ class NeovimKeymapsProvider {
   private isVSCodeNeovimAvailable = false;
   private initialized: Promise<void>;
   private fuse: any = null;
+  private keymapsFetched = false;
 
   constructor() {
     this.initialized = this.loadKeymaps();
@@ -79,6 +80,7 @@ class NeovimKeymapsProvider {
         try {
           const rawKeymaps = JSON.parse(jsonData);
           this.keymaps = this.processRawKeymaps(rawKeymaps);
+          this.keymapsFetched = true;
         } catch (jsonError) {
           console.error("Failed to parse JSON from clipboard:", jsonError);
           throw new Error("Invalid JSON data received from vscode-neovim");
@@ -86,6 +88,7 @@ class NeovimKeymapsProvider {
       } else {
         console.log("Expected keymap data not found in clipboard");
         throw new Error("Keymap data not found in clipboard");
+        this.keymapsFetched = false;
       }
 
       // Restore original clipboard content
@@ -112,7 +115,8 @@ class NeovimKeymapsProvider {
       }
     } catch (error) {
       console.error("Failed to fetch keymaps from vscode-neovim via clipboard:", error);
-      vscode.window.showErrorMessage(`Failed to load keymaps: ${error}`);
+      // vscode.window.showErrorMessage(`Failed to load keymaps: ${error}`);
+      this.keymapsFetched = false;
     }
   }
 
@@ -157,6 +161,30 @@ class NeovimKeymapsProvider {
     return this.keymaps;
   }
 
+  async ensureKeymapsLoaded(): Promise<boolean> {
+    await this.initialized;
+
+    if (!this.isVSCodeNeovimAvailable) {
+      return false;
+    }
+
+    if (!this.keymapsFetched || this.keymaps.length === 0) {
+      try {
+        // Wait a bit for Neovim to be fully loaded
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        await this.fetchKeymapsFromVSCodeNeovim();
+
+        return this.keymapsFetched && this.keymaps.length > 0;
+      } catch (error) {
+        console.error("Retry failed:", error);
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   async searchKeymaps(query: string): Promise<KeymapItem[]> {
     const keymaps = await this.getKeymaps();
 
@@ -179,6 +207,24 @@ class NeovimKeymapsProvider {
     return results.map((result: any) => result.item);
   }
 
+  async refreshKeymaps(): Promise<boolean> {
+    if (!this.isVSCodeNeovimAvailable) {
+      return false;
+    }
+
+    try {
+      this.keymapsFetched = false;
+      this.keymaps = [];
+      this.fuse = null;
+
+      await this.fetchKeymapsFromVSCodeNeovim();
+      return this.keymapsFetched && this.keymaps.length > 0;
+    } catch (error) {
+      console.error("Refresh failed:", error);
+      return false;
+    }
+  }
+
   isVSCodeNeovimInstalled(): boolean {
     return this.isVSCodeNeovimAvailable;
   }
@@ -195,6 +241,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     if (!provider.isVSCodeNeovimInstalled()) {
       vscode.window.showErrorMessage(
         "vscode-neovim extension not found. Please install vscode-neovim extension."
+      );
+      return;
+    }
+
+    const keymapsLoaded = await provider.ensureKeymapsLoaded();
+    if (!keymapsLoaded) {
+      vscode.window.showErrorMessage(
+        "Failed to load keymaps from Neovim. Please ensure vscode-neovim is fully loaded and configured."
       );
       return;
     }
@@ -240,7 +294,32 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     quickPick.show();
   });
 
-  context.subscriptions.push(command);
+  const refreshCommand = vscode.commands.registerCommand("neovim-keymaps-list.refreshKeymaps", async () => {
+    if (!provider.isVSCodeNeovimInstalled()) {
+      vscode.window.showErrorMessage(
+        "vscode-neovim extension not found. Please install vscode-neovim extension."
+      );
+      return;
+    }
+
+    try {
+      const success = await provider.refreshKeymaps();
+      if (success) {
+        const keymaps = await provider.getKeymaps();
+        vscode.window.showInformationMessage(
+          `Successfully refreshed ${keymaps.length} keymaps from Neovim.`
+        );
+      } else {
+        vscode.window.showErrorMessage(
+          "Failed to refresh keymaps. Please ensure vscode-neovim is fully loaded and configured."
+        );
+      }
+    } catch (error) {
+      vscode.window.showErrorMessage(`Failed to refresh keymaps: ${error}`);
+    }
+  });
+
+  context.subscriptions.push(command, refreshCommand);
 }
 
 export function deactivate(): void {}

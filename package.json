@@ -21,6 +21,10 @@
       {
         "command": "neovim-keymaps-list.searchKeymaps",
         "title": "Search Neovim Keymaps"
+      },
+      {
+        "command": "neovim-keymaps-list.refreshKeymaps",
+        "title": "Refresh Neovim Keymaps"
       }
     ]
   },
