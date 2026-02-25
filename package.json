@@ -44,12 +44,10 @@
     "asvetliakov.vscode-neovim"
   ],
   "scripts": {
-    "vscode:prepublish": "npm run package",
     "compile": "webpack",
     "watch": "webpack --watch",
     "package": "webpack --mode production --devtool hidden-source-map",
     "clean:vsix": "powershell -Command \"Remove-Item *.vsix -Force -ErrorAction SilentlyContinue\"",
-    "release": "npm run clean:vsix && release-it --ci --config .config\\\\.release-it.js\\ && vsce package && release-it --ci --no-npm --no-increment --github.release --github.update --github.assets='*${version}.vsix' --github.releaseNotes=\"npx auto-changelog --commit-limit false --template \\\".config\\\\template.hbs\\\" --handlebars-setup \\\".config\\\\setup.js\\\" --stdout\" --no-github.draft --no-git.tag --no-git.commit --no-git.push"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.7",
@@ -66,8 +64,6 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
-    "@release-it/conventional-changelog": "^10.0.1",
-    "fuse.js": "^7.1.0",
-    "release-it": "^19.0.3"
+    "fuse.js": "^7.1.0"
   }
 }
