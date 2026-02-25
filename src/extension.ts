@@ -1,4 +1,7 @@
 import * as vscode from "vscode";
+import * as path from "path";
+import * as os from "os";
+import * as fs from "fs";
 
 interface KeymapItem {
   lhs: string;
@@ -40,6 +43,8 @@ class NeovimKeymapsProvider {
 
   private async fetchKeymapsFromVSCodeNeovim(): Promise<void> {
     try {
+      const tempFilePath = path.join(os.tmpdir(), `nvim_keymaps_${Date.now()}.json`);
+
       const luaScript = [
         "local result = {}",
         "local modes = {'n', 'i', 'v', 'x', 's', 'o', 't', 'c'}",
@@ -60,62 +65,49 @@ class NeovimKeymapsProvider {
         "  end",
         "end",
         "",
-        "-- Save raw data to clipboard",
+        "-- Save raw data to temp file",
         "local json_result = vim.fn.json_encode(result)",
-        "vim.fn.setreg('+', 'ALL_KEYMAPS:' .. json_result)",
+        "local file = io.open('" + tempFilePath.replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "', 'w')",
+        "if file then",
+        "  file:write(json_result)",
+        "  file:close()",
+        "end",
       ];
-
-      const originalClipboard = await vscode.env.clipboard.readText();
 
       await vscode.commands.executeCommand("vscode-neovim.lua", luaScript);
 
-      // Wait for clipboard operation
+      // Wait for file write
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      const clipboardContent = await vscode.env.clipboard.readText();
+      if (fs.existsSync(tempFilePath)) {
+        const fileContent = fs.readFileSync(tempFilePath, 'utf-8');
+        
+        const rawKeymaps = JSON.parse(fileContent);
+        this.keymaps = this.processRawKeymaps(rawKeymaps);
+        this.keymapsFetched = true;
 
-      if (clipboardContent.startsWith("ALL_KEYMAPS:")) {
-        const jsonData = clipboardContent.substring("ALL_KEYMAPS:".length);
-
-        try {
-          const rawKeymaps = JSON.parse(jsonData);
-          this.keymaps = this.processRawKeymaps(rawKeymaps);
-          this.keymapsFetched = true;
-        } catch (jsonError) {
-          console.error("Failed to parse JSON from clipboard:", jsonError);
-          throw new Error("Invalid JSON data received from vscode-neovim");
-        }
+        fs.unlinkSync(tempFilePath);
       } else {
-        console.log("Expected keymap data not found in clipboard");
-        throw new Error("Keymap data not found in clipboard");
-        this.keymapsFetched = false;
+        throw new Error("Keymap data file not found");
       }
 
-      // Restore original clipboard content
-      await vscode.env.clipboard.writeText(originalClipboard);
-
-      try {
-        const { default: Fuse } = await import("fuse.js");
-        this.fuse = new Fuse(this.keymaps, {
-          keys: [
-            { name: "lhs", weight: 0.4 },
-            { name: "description", weight: 0.3 },
-            { name: "rhs", weight: 0.2 },
-            { name: "modeName", weight: 0.1 },
-          ],
-          threshold: 0.4,
-          includeScore: true,
-          ignoreLocation: true,
-          findAllMatches: true,
-          minMatchCharLength: 1,
-        });
-      } catch (error) {
-        console.error("Failed to load Fuse.js:", error);
-        this.fuse = null;
-      }
+      // Initialize Fuse.js for fuzzy search
+      const { default: Fuse } = await import("fuse.js");
+      this.fuse = new Fuse(this.keymaps, {
+        keys: [
+          { name: "lhs", weight: 0.4 },
+          { name: "description", weight: 0.3 },
+          { name: "rhs", weight: 0.2 },
+          { name: "modeName", weight: 0.1 },
+        ],
+        threshold: 0.4,
+        includeScore: true,
+        ignoreLocation: true,
+        findAllMatches: true,
+        minMatchCharLength: 1,
+      });
     } catch (error) {
-      console.error("Failed to fetch keymaps from vscode-neovim via clipboard:", error);
-      // vscode.window.showErrorMessage(`Failed to load keymaps: ${error}`);
+      console.error("Failed to fetch keymaps from vscode-neovim:", error);
       this.keymapsFetched = false;
     }
   }
